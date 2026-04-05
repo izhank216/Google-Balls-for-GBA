@@ -1,0 +1,19 @@
+name: GBA Build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          arm-none-eabi-gcc -mthumb -mthumb-interwork -specs=gba.specs balls.c -o balls.elf -O3 -ltonc
+          arm-none-eabi-objcopy -O binary balls.elf GoogleBalls.gba
+          gbafix GoogleBalls.gba
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoogleBalls-ROM
+          path: GoogleBalls.gba
