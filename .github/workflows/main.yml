@@ -17,11 +17,9 @@ jobs:
 
           # Adding explicit paths for libgba and libtonc
           arm-none-eabi-gcc -mthumb -mthumb-interwork \
-            -I$DEVKITPRO/libgba/include \
-            -I$DEVKITPRO/libtonc/include \
-            -L$DEVKITPRO/libgba/lib \
-            -L$DEVKITPRO/libtonc/lib \
-            -specs=gba.specs balls.c -o balls.elf -O3 -ltonc -lgba
+           -I$DEVKITPRO/libtonc/include \
+           -L$DEVKITPRO/libtonc/lib \
+           -specs=gba.specs balls.c -o balls.elf -O3 -ltonc
           
           arm-none-eabi-objcopy -O binary balls.elf GoogleBalls.gba
           gbafix GoogleBalls.gba
