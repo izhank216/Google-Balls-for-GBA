@@ -1,5 +1,6 @@
 name: GBA Build
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -7,11 +8,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Build
+
+      - name: Build ROM
         run: |
+          # Exporting the necessary paths from /opt
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITARM=$DEVKITPRO/devkitARM
+          export PATH=$PATH:$DEVKITARM/bin:$DEVKITPRO/tools/bin
+
+          # Compilation
           arm-none-eabi-gcc -mthumb -mthumb-interwork -specs=gba.specs balls.c -o balls.elf -O3 -ltonc
+          
+          # Convert to GBA and Fix Header
           arm-none-eabi-objcopy -O binary balls.elf GoogleBalls.gba
           gbafix GoogleBalls.gba
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
