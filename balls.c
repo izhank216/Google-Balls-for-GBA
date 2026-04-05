@@ -14,20 +14,27 @@ typedef struct {
 Ball balls[BALL_COUNT];
 
 void init_balls() {
-    // These are scaled-down coordinates to center the logo on a 240x160 screen
-    int x_raw[] = {202, 348, 256, 214, 265, 300, 294, 45, 268, 73}; // truncated for brevity
-    int y_raw[] = {78, 83, 69, 59, 36, 78, 59, 88, 52, 83};
-    u16 colors[] = {CLR_ORANGE, CLR_RED, CLR_BLUE, CLR_YELLOW, CLR_GREEN, CLR_BLUE};
+    // Full coordinate data from your original desktop code
+    const int x_raw[] = {202, 348, 256, 214, 265, 300, 294, 45, 268, 73, 294, 235, 353, 336, 208, 321, 8, 180, 146, 145, 246, 169, 273, 248, 294, 267, 78, 294, 117, 137, 14, 331, 25, 233, 73, 327, 319, 256, 244, 194, 97, 105, 42, 10, 166, 266, 178, 100, 343, 59, 27, 232, 123, 6, 63, 6, 108, 169, 137, 318, 226, 101, 226, 17, 232};
+    const int y_raw[] = {78, 83, 69, 59, 36, 78, 59, 88, 52, 83, 6, 62, 42, 52, 41, 70, 60, 81, 65, 49, 34, 69, 99, 120, 41, 114, 67, 23, 83, 80, 71, 80, 82, 46, 13, 35, 46, 81, 88, 32, 56, 75, 4, 27, 55, 88, 34, 65, 32, 5, 9, 116, 32, 38, 62, 49, 36, 43, 37, 58, 100, 46, 108, 17, 93};
+    const u16 colors[] = {CLR_ORANGE, CLR_RED, CLR_BLUE, CLR_YELLOW, CLR_BLUE, CLR_GREEN};
 
     for(int i = 0; i < BALL_COUNT; i++) {
-        // We scale the original 400ish range coordinates by ~0.5 to fit 240
-        int target_x = (x_raw[i % 10] / 2) + 40; 
-        int target_y = (y_raw[i % 10] / 2) + 40;
+        // Scaling: original was ~360 wide, GBA is 240. (x * 0.5) + offset centers it.
+        int target_x = (x_raw[i] / 2) + 35; 
+        int target_y = (y_raw[i] / 2) + 45;
 
         balls[i].ox = balls[i].x = TO_FP(target_x);
         balls[i].oy = balls[i].y = TO_FP(target_y);
         balls[i].vx = balls[i].vy = 0;
-        balls[i].color = colors[i % 6];
+        
+        // Match the color logic
+        if (x_raw[i] < 90) balls[i].color = CLR_BLUE;      // 'G'
+        else if (x_raw[i] < 150) balls[i].color = CLR_RED;  // 'o'
+        else if (x_raw[i] < 210) balls[i].color = CLR_ORANGE; // 'o'
+        else if (x_raw[i] < 270) balls[i].color = CLR_BLUE;  // 'g'
+        else if (x_raw[i] < 310) balls[i].color = CLR_GREEN; // 'l'
+        else balls[i].color = CLR_RED;                       // 'e'
     }
 }
 
@@ -39,22 +46,23 @@ void update_balls(int mx, int my) {
         int dx = f_mx - balls[i].x;
         int dy = f_my - balls[i].y;
         
-        // Use FROM_FP to prevent integer overflow during squaring
-        int dist_sq = (FROM_FP(dx)*FROM_FP(dx)) + (FROM_FP(dy)*FROM_FP(dy));
+        // Approximate distance check (Manhattan distance for GBA speed)
+        int abs_dx = abs(FROM_FP(dx));
+        int abs_dy = abs(FROM_FP(dy));
 
-        // Interaction radius (approx 40 pixels)
-        if(dist_sq < 1600) {
-            balls[i].vx -= dx / 16;
-            balls[i].vy -= dy / 16;
+        // If "mouse" is within ~35 pixels
+        if(abs_dx + abs_dy < 35) {
+            balls[i].vx -= dx / 12;
+            balls[i].vy -= dy / 12;
         }
 
-        // Spring physics (return to home)
-        balls[i].vx += (balls[i].ox - balls[i].x) / 32;
-        balls[i].vy += (balls[i].oy - balls[i].y) / 32;
+        // Return to home physics
+        balls[i].vx += (balls[i].ox - balls[i].x) / 24;
+        balls[i].vy += (balls[i].oy - balls[i].y) / 24;
 
         // Friction
-        balls[i].vx = (balls[i].vx * 9) / 10;
-        balls[i].vy = (balls[i].vy * 9) / 10;
+        balls[i].vx = (balls[i].vx * 200) / 256;
+        balls[i].vy = (balls[i].vy * 200) / 256;
 
         balls[i].x += balls[i].vx;
         balls[i].y += balls[i].vy;
@@ -63,7 +71,6 @@ void update_balls(int mx, int my) {
 
 int main() {
     REG_DISPCNT = DCNT_MODE3 | DCNT_BG2;
-    
     irq_init(NULL);
     irq_add(II_VBLANK, NULL);
 
@@ -76,32 +83,26 @@ int main() {
         VBlankIntrWait();
         key_poll();
 
-        // D-Pad movement for the "Mouse"
+        // Keyboard/D-Pad Controls
         mx += 3 * key_tri_horz();
         my += 3 * key_tri_vert();
 
-        mx = clamp(mx, 0, 239);
-        my = clamp(my, 0, 159);
+        mx = clamp(mx, 5, 234);
+        my = clamp(my, 5, 154);
 
-        // Standard Mode 3 clear
         m3_fill(CLR_WHITE);
 
         for(int i = 0; i < BALL_COUNT; i++) {
             int px = FROM_FP(balls[i].x);
             int py = FROM_FP(balls[i].y);
             
-            // Draw 2x2 pixels if within bounds
-            if(px > 0 && px < 239 && py > 0 && py < 159) {
-                m3_plot(px, py, balls[i].color);
-                m3_plot(px+1, py, balls[i].color);
-                m3_plot(px, py+1, balls[i].color);
-                m3_plot(px+1, py+1, balls[i].color);
-            }
+            // Draw 2x2 blocks for balls
+            m3_rect(px, py, px+2, py+2, balls[i].color);
         }
         
         update_balls(mx, my);
         
-        // Draw the black cursor square
+        // Cursor
         m3_rect(mx-1, my-1, mx+1, my+1, CLR_BLACK);
     }
     return 0;
