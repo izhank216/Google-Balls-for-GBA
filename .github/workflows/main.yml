@@ -1,4 +1,4 @@
-name: GBA Build
+name: GBA and NES Build
 on: [push]
 
 jobs:
@@ -9,23 +9,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build ROM
+      - name: Install NES tools
+        run: |
+          apt-get update
+          apt-get install -y cc65
+
+      - name: Build GBA
         run: |
           export DEVKITPRO=/opt/devkitpro
           export DEVKITARM=$DEVKITPRO/devkitARM
           export PATH=$PATH:$DEVKITARM/bin:$DEVKITPRO/tools/bin
-
-          # Adding explicit paths for libgba and libtonc
-          arm-none-eabi-gcc -mthumb -mthumb-interwork \
-           -I$DEVKITPRO/libtonc/include \
-           -L$DEVKITPRO/libtonc/lib \
-           -specs=gba.specs balls.c -o balls.elf -O3 -ltonc
-          
+          arm-none-eabi-gcc -mthumb -mthumb-interwork -I$DEVKITPRO/libtonc/include -L$DEVKITPRO/libtonc/lib -specs=gba.specs balls.c -o balls.elf -O3 -ltonc
           arm-none-eabi-objcopy -O binary balls.elf GoogleBalls.gba
           gbafix GoogleBalls.gba
 
-      - name: Upload
-        uses: actions/upload-artifact@v4
+      - name: Build NES
+        run: |
+          cl65 -t nes -O -o GoogleBalls.nes nes/balls.c neslib.lib
+
+      - name: Set Tag Name
+        id: vars
+        run: echo "tag=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: GoogleBalls-ROM
-          path: GoogleBalls.gba
+          tag_name: ${{ steps.vars.outputs.tag }}
+          files: |
+            GoogleBalls.gba
+            GoogleBalls.nes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
