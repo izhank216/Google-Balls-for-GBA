@@ -1,6 +1,5 @@
 #include <stdlib.h>
-#include <string.h>
-#include "neslib.h"
+#include <nes.h>
 
 #define BALL_COUNT 64
 #define FP_SHIFT 4
@@ -33,7 +32,6 @@ void init_balls() {
         oy[i] = y[i] = y_raw[i] + 40;
         vx[i] = 0;
         vy[i] = 0;
-
         if (x_raw[i] < 60)       colors[i] = 1;
         else if (x_raw[i] < 100) colors[i] = 0;
         else if (x_raw[i] < 140) colors[i] = 3;
@@ -46,22 +44,17 @@ void init_balls() {
 void update_balls(unsigned char mx, unsigned char my) {
     unsigned char i;
     signed int dx, dy;
-    
     for(i = 0; i < BALL_COUNT; i++) {
         dx = (signed int)mx - x[i];
         dy = (signed int)my - y[i];
-
         if(abs(dx) + abs(dy) < 25) {
             vx[i] -= (dx >> 2);
             vy[i] -= (dy >> 2);
         }
-
         vx[i] += ((signed char)ox[i] - (signed char)x[i]) >> 3;
         vy[i] += ((signed char)oy[i] - (signed char)y[i]) >> 3;
-
         vx[i] = (vx[i] * 4) / 5;
         vy[i] = (vy[i] * 4) / 5;
-
         x[i] += (vx[i] >> 2);
         y[i] += (vy[i] >> 2);
     }
@@ -72,31 +65,21 @@ void main(void) {
     unsigned char my = 120;
     unsigned char pad;
     unsigned char i;
-    unsigned char oam_id;
-
+    init_balls();
     pal_bg(palette);
     pal_spr(palette);
-    bank_spr(1);
-    init_balls();
-    
     ppu_on_all();
-
     while(1) {
-        ppu_wait_nmi();
-        oam_id = 0;
-
-        pad = pad_poll(0);
-        if(pad & PAD_LEFT)  mx -= 2;
-        if(pad & PAD_RIGHT) mx += 2;
-        if(pad & PAD_UP)    my -= 2;
-        if(pad & PAD_DOWN)  my += 2;
-
-        oam_id = oam_spr(mx, my, 0x03, 0, oam_id);
-
+        ppu_wait_frame();
+        pad = joy_read(0);
+        if(JOY_LEFT(pad))  mx -= 2;
+        if(JOY_RIGHT(pad)) mx += 2;
+        if(JOY_UP(pad))    my -= 2;
+        if(JOY_DOWN(pad))  my += 2;
         for(i = 0; i < BALL_COUNT; i++) {
-            oam_id = oam_spr(x[i], y[i], 0x00, colors[i], oam_id);
+            oam_set(i << 2, x[i], y[i], 0x00, colors[i]);
         }
-
+        oam_set(BALL_COUNT << 2, mx, my, 0x03, 0);
         update_balls(mx, my);
     }
 }
