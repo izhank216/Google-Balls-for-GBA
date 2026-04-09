@@ -20,14 +20,8 @@ void init_balls() {
     for(i = 0; i < BALL_COUNT; i++) {
         ox[i] = x[i] = x_raw[i] + 30;
         oy[i] = y[i] = y_raw[i] + 40;
-        vx[i] = 0;
-        vy[i] = 0;
-        if (x_raw[i] < 60)       colors[i] = 1;
-        else if (x_raw[i] < 100) colors[i] = 0;
-        else if (x_raw[i] < 140) colors[i] = 3;
-        else if (x_raw[i] < 180) colors[i] = 1;
-        else if (x_raw[i] < 210) colors[i] = 2;
-        else                     colors[i] = 0;
+        vx[i] = 0; vy[i] = 0;
+        colors[i] = (x_raw[i] >> 5) & 0x03; 
     }
 }
 
@@ -54,19 +48,31 @@ void main(void) {
     unsigned char mx = 128;
     unsigned char my = 120;
     unsigned char pad;
-    
+    unsigned char i;
+
     joy_install(joy_static_stddrv);
     init_balls();
 
+    PPU.control = 0x80; 
+    PPU.mask = 0x1E;    
+
     while(1) {
         waitvsync();
-        pad = joy_read(JOY_1);
         
+        pad = joy_read(JOY_1);
         if (JOY_LEFT(pad))  mx -= 2;
         if (JOY_RIGHT(pad)) mx += 2;
         if (JOY_UP(pad))    my -= 2;
         if (JOY_DOWN(pad))  my += 2;
 
         update_balls(mx, my);
+
+        for(i = 0; i < BALL_COUNT; i++) {
+            unsigned char offset = i << 2;
+            ((unsigned char*)0x0200)[offset] = y[i];
+            ((unsigned char*)0x0200)[offset+1] = 0; 
+            ((unsigned char*)0x0200)[offset+2] = colors[i];
+            ((unsigned char*)0x0200)[offset+3] = x[i];
+        }
     }
 }
