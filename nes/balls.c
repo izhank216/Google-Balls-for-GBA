@@ -3,7 +3,6 @@
 #include <joystick.h>
 
 #define BALL_COUNT 64
-#define FP_SHIFT 4
 
 unsigned char x[BALL_COUNT];
 unsigned char y[BALL_COUNT];
@@ -15,13 +14,6 @@ unsigned char colors[BALL_COUNT];
 
 const unsigned char x_raw[] = {202, 148, 156, 114, 165, 100, 194, 45, 168, 73, 194, 135, 153, 136, 108, 121, 8, 110, 146, 145, 146, 169, 173, 148, 194, 167, 78, 194, 117, 137, 14, 131, 25, 133, 73, 127, 119, 156, 144, 94, 97, 105, 42, 10, 166, 166, 178, 100, 143, 59, 27, 132, 123, 6, 63, 6, 108, 169, 137, 118, 126, 101, 126, 17};
 const unsigned char y_raw[] = {78, 83, 69, 59, 36, 78, 59, 88, 52, 83, 6, 62, 42, 52, 41, 70, 60, 81, 65, 49, 34, 69, 99, 120, 41, 114, 67, 23, 83, 80, 71, 80, 82, 46, 13, 35, 46, 81, 88, 32, 56, 75, 4, 27, 55, 88, 34, 65, 32, 5, 9, 116, 32, 38, 62, 49, 36, 43, 37, 58, 100, 46, 108, 17};
-
-const unsigned char palette[] = {
-    0x0f, 0x06, 0x16, 0x26,
-    0x0f, 0x01, 0x11, 0x21,
-    0x0f, 0x09, 0x19, 0x29,
-    0x0f, 0x08, 0x18, 0x28
-};
 
 void init_balls() {
     unsigned char i;
@@ -62,7 +54,6 @@ void main(void) {
     unsigned char mx = 128;
     unsigned char my = 120;
     unsigned char pad;
-    unsigned char i;
     
     joy_install(joy_static_stddrv);
     init_balls();
@@ -71,10 +62,10 @@ void main(void) {
         waitvsync();
         pad = joy_read(JOY_1);
         
-        if (JOY_BTN_LEFT(pad))  mx -= 2;
-        if (JOY_BTN_RIGHT(pad)) mx += 2;
-        if (JOY_BTN_UP(pad))    my -= 2;
-        if (JOY_BTN_DOWN(pad))  my += 2;
+        if (pad & JOY_BTN_LEFT)  mx -= 2;
+        if (pad & JOY_BTN_RIGHT) mx += 2;
+        if (pad & JOY_BTN_UP)    my -= 2;
+        if (pad & JOY_BTN_DOWN)  my -= 2;
 
         update_balls(mx, my);
     }
