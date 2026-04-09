@@ -25,7 +25,7 @@ jobs:
 
       - name: Build NES
         run: |
-          cl65 -t nes -O -o GoogleBalls.nes nes/balls.c neslib.lib
+          cl65 -t nes -O -o GoogleBalls.nes nes/balls.c nes.lib
 
       - name: Set Tag Name
         id: vars
