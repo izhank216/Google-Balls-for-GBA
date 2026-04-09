@@ -62,10 +62,10 @@ void main(void) {
         waitvsync();
         pad = joy_read(JOY_1);
         
-        if (pad & JOY_BTN_LEFT)  mx -= 2;
-        if (pad & JOY_BTN_RIGHT) mx += 2;
-        if (pad & JOY_BTN_UP)    my -= 2;
-        if (pad & JOY_BTN_DOWN)  my -= 2;
+        if (JOY_LEFT(pad))  mx -= 2;
+        if (JOY_RIGHT(pad)) mx += 2;
+        if (JOY_UP(pad))    my -= 2;
+        if (JOY_DOWN(pad))  my += 2;
 
         update_balls(mx, my);
     }
